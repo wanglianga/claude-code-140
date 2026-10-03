@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: pv-postgres
+    environment:
+      POSTGRES_USER: pv
+      POSTGRES_PASSWORD: pv123
+      POSTGRES_DB: rooftoppv
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pv_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pv -d rooftoppv"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pv-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://pv:pv123@db:5432/rooftoppv?sslmode=disable"
+      HTTP_ADDR: ":8080"
+      FRONTEND_DIST: "/app/dist"
+      AUTO_MIGRATE: "true"
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:8080"
+
+volumes:
+  pv_pgdata:
